@@ -10,7 +10,7 @@ ggplot(beaver1,  aes(x = time, y = temp, group=activ, colour =activ)) + geom_lin
 #б)Гистограмма температуры
 qplot(temp, data = beaver1,geom = "histogram",group=activ, color=activ)
 #с)Среднее температура
-beaver1 %>% group_by(activ) %>% summarise(avg=mean(temp)) %>% ggplot(aes(x=activ,y=avg)) + geom_point()mtcars
+beaver1 %>% group_by(activ) %>% summarise(avg=mean(temp)) %>% ggplot(aes(x=activ,y=avg)) + geom_point()
 #d)Яшики с усамы 
 beaver1$activ<-ifelse(beaver1$activ==1,"Active","Dormant")
 qplot(data=beaver1,x=activ,y=temp,geom="boxplot", colour=activ)+
