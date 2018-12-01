@@ -1,13 +1,16 @@
 library(ggplot2) 
 library(dplyr) 
 library(titanic) 
+library(corrplot) 
 data_train<-titanic_train %>% mutate(Survived = as.factor(Survived), 
 Pclass = as.factor(Pclass), 
 Sex = as.factor(Sex), 
 Embarked = as.factor(Embarked), 
 SibSp = as.numeric(SibSp)) 
 
-
+require(car)
+data_train$Cabin <- recode(data_train$Cabin, "'' = NA")
+data_train$Embarked <- recode(data_train$Embarked, "'' = NA")
 require(stringr) 
 data_train$Title <-data_train$Name %>% str_extract(., "\\w+\\.") %>% str_sub(.,1, -2) 
 mean_title <- data_train %>% group_by(Title) %>% 
@@ -48,3 +51,25 @@ data_train$Family <- data_train$SibSp + data_train$Parch
 ggplot(data_train, aes(x = factor(Family), y = as.numeric(as.character(Survived)))) + 
         stat_summary( fun.y = mean, ymin=0, ymax=1, geom="bar", size=4, fill= colours[2]) +
         xlab("relatives on board") + ylab("survived perentage") + facet_grid(Sex ~ .)
+
+
+
+data_train$isFamily <- as.factor(as.numeric(data_train$Family > 0))
+ggplot(data_train, aes(x = factor(isFamily, labels =c("no", "yes")), y = as.numeric(as.character(Survived)))) +
+        stat_summary( fun.y = "mean", geom="bar", ymin=0, ymax=1, fill= colours[2]) + 
+        facet_grid(Pclass ~ Sex) + ylab("survived percentage") + xlab("relatives on boat")
+
+
+data_train$isCabin <- factor(ifelse(is.na(data_train$Cabin),0,1))
+ggplot( data_train, aes(x=factor(isCabin, labels =c("no", "yes")),y=as.numeric(as.character(Survived))) ) +
+        stat_summary( fun.y = mean, ymin=0, ymax=1, geom="bar", size=4, fill= colours[3]) + 
+        ylab("survived percentage") + xlab("availability of a cabin room")
+
+corplot_data <- data_train %>% 
+        select(Survived, Pclass, Sex, Age, Fare, Embarked, Family, isFamily, isCabin) %>%
+        mutate(Survived = as.numeric(Survived), Pclass = as.numeric(Pclass),
+               Sex = as.numeric(Sex), Embarked = as.numeric(Embarked),
+               isFamily = as.numeric(isFamily), isCabin = as.numeric(isCabin))
+corr_train_data <- cor(corplot_data, use = "na.or.complete")
+corrplot(corr_train_data, 
+            upper.panel="number", mar=c(1,2,1,1), main='Correlation between symptoms')
