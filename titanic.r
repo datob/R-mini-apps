@@ -7,7 +7,6 @@ Pclass = as.factor(Pclass),
 Sex = as.factor(Sex), 
 Embarked = as.factor(Embarked), 
 SibSp = as.numeric(SibSp)) 
-
 require(car)
 data_train$Cabin <- recode(data_train$Cabin, "'' = NA")
 data_train$Embarked <- recode(data_train$Embarked, "'' = NA")
@@ -44,26 +43,48 @@ data_train$Title <- change.titles(data_train, c("Ms"),
                                "Mrs")
 data_train$Title <- change.titles(data_train, c("Mlle", "Mme"), "Miss")
 data_train$Title <- as.factor(data_train$Title)
-
 Surv_rate_family <- data_train %>% group_by(Family = SibSp + Parch) %>% 
         summarise(Rate = mean(as.numeric(as.character(Survived))))
 data_train$Family <- data_train$SibSp + data_train$Parch
+data_train$isFamily <- as.factor(as.numeric(data_train$Family > 0))
+data_train$isCabin <- factor(ifelse(is.na(data_train$Cabin),0,1))
+
+ggplot(data_train, aes(x = factor(Pclass, labels = c("first", "second", "third")), 
+                       y = Age, fill = factor(Pclass))) + 
+        geom_boxplot() + scale_fill_manual (values=colours) + 
+        ylab("Age") + xlab("Class of cabin room") + guides(fill=FALSE)
+
+ggplot(data_train, aes(x = factor(Title, 
+                                  c("Aristocratic", "Mrs", "Mr", "Miss", "Master")), 
+                       y = Age)) + geom_boxplot(fill= colours[3]) + guides(fill=FALSE) +
+        guides(fill=guide_legend(title=NULL)) + ylab("Age") + xlab(NULL)
+
+ggplot(data_train, aes(x = SibSp, y = Parch, 
+                       color = factor(Survived, labels = c("dead", "Survived")))) + 
+        geom_point(shape = 1, size = 4, 
+                   position=position_jitter(width=0.3,height=.3)) +
+        guides(color=guide_legend(title=NULL)) + 
+        xlab("siblings") + 
+        ylab("parents , children")
+
+ggplot(Surv_rate_family, aes(x = as.factor(Family), y = Rate)) + 
+        geom_bar(stat = "identity", width=.6, fill= colours[3]) + xlab("availability of a cabin room")+ ylab("survive percentage") 
+
 ggplot(data_train, aes(x = factor(Family), y = as.numeric(as.character(Survived)))) + 
         stat_summary( fun.y = mean, ymin=0, ymax=1, geom="bar", size=4, fill= colours[2]) +
-        xlab("relatives on board") + ylab("survived perentage") + facet_grid(Sex ~ .)
+        xlab("relatives on board") + ylab("survive perentage") + facet_grid(Sex ~ .)
 
-
-
-data_train$isFamily <- as.factor(as.numeric(data_train$Family > 0))
 ggplot(data_train, aes(x = factor(isFamily, labels =c("no", "yes")), y = as.numeric(as.character(Survived)))) +
         stat_summary( fun.y = "mean", geom="bar", ymin=0, ymax=1, fill= colours[2]) + 
-        facet_grid(Pclass ~ Sex) + ylab("survived percentage") + xlab("relatives on boat")
+        facet_grid(Pclass ~ Sex) + ylab("survive percentage") + xlab("relatives on boat")
 
-
-data_train$isCabin <- factor(ifelse(is.na(data_train$Cabin),0,1))
 ggplot( data_train, aes(x=factor(isCabin, labels =c("no", "yes")),y=as.numeric(as.character(Survived))) ) +
         stat_summary( fun.y = mean, ymin=0, ymax=1, geom="bar", size=4, fill= colours[3]) + 
-        ylab("survived percentage") + xlab("availability of a cabin room")
+        ylab("survive percentage") + xlab("availability of a cabin room")
+
+ggplot(data_train, aes(x = factor(isCabin, labels =c("no", "yes")), y = as.numeric(as.character(Survived)))) +
+        stat_summary( fun.y = "mean", geom="bar", ymin=0, ymax=1, fill= colours[3]) + 
+        facet_grid(Pclass ~ Sex) + ylab("survive percentage") + xlab("availability of a cabin room")
 
 corplot_data <- data_train %>% 
         select(Survived, Pclass, Sex, Age, Fare, Embarked, Family, isFamily, isCabin) %>%
