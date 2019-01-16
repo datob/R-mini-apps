@@ -49,6 +49,8 @@ data_train$Family <- data_train$SibSp + data_train$Parch
 data_train$isFamily <- as.factor(as.numeric(data_train$Family > 0))
 data_train$isCabin <- factor(ifelse(is.na(data_train$Cabin),0,1))
 
+# Графики
+
 ggplot(data_train, aes(x = factor(Pclass, labels = c("first", "second", "third")), 
                        y = Age, fill = factor(Pclass))) + 
         geom_boxplot() + scale_fill_manual (values=colours) + 
@@ -94,3 +96,37 @@ corplot_data <- data_train %>%
 corr_train_data <- cor(corplot_data, use = "na.or.complete")
 corrplot(corr_train_data, 
             upper.panel="number", mar=c(1,2,1,1), main='Correlation between symptoms')
+
+
+#сама Модель 
+
+data_train2=data_train 
+require(plyr) 
+require(dplyr) 
+data_train2$Survived = revalue(data_train2$Survived, c("0"="Died", "1" = "Survived")) 
+data_train2$Pclass =revalue(data_train2$Pclass, c("1"="First", "2"="Second", "3"="Third")) 
+data_train2$Sex = revalue(data_train2$Sex , c("female"="Female", "male"="Male")) 
+data_train2$isFamily =revalue(data_train2$isFamily, c("0"="No", "1"="Yes")) 
+data_train2$isCabin = revalue(data_train2$isCabin, c("0"="No", "1"="Yes")) 
+
+require(caret) 
+set.seed(111) 
+split <- createDataPartition(data_train2$Survived, p = 0.8, list = FALSE) 
+train <- slice(data_train2, split) 
+test <- slice(data_train2, -split) 
+
+cv_ctrl <- trainControl(method = "repeatedcv", repeats = 10, 
+summaryFunction = twoClassSummary, 
+classProbs = TRUE) 
+
+set.seed(111) 
+glm.tune.1 <- train(Survived ~ Pclass + Sex + isCabin, 
+data = train, 
+method = "glm", 
+metric = "ROC", 
+trControl = cv_ctrl) 
+glm.tune.1 
+
+
+
+confusionMatrix(data = predict(glm.tune.1, newdata=test), test$Survived )
